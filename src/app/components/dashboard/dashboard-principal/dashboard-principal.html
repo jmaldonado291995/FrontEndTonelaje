@@ -1,0 +1,92 @@
+<div class="dashboard-page">
+  <div class="dashboard-header">
+    <div class="dashboard-header-info">
+      <h1>Dashboard Tonelaje</h1>
+      <p>Visualización de variables clave del proceso</p>
+    </div>
+
+    <div class="dashboard-fecha">
+      <label for="fechaDashboard">Fecha</label>
+      <input
+        id="fechaDashboard"
+        type="date"
+        [value]="fechaSeleccionada()"
+        (change)="onFechaChange($event)"
+      />
+    </div>
+  </div>
+
+  @if (!hayDatos()) {
+    <div class="alerta-vacia">
+      No existen datos para la fecha seleccionada.
+    </div>
+  }
+
+  <div class="dashboard-content">
+    <div class="kpis-grid">
+      <app-dashboard-card
+        titulo="Tonelaje Entrante"
+        [valor]="hayDatos() ? dashboardData()!.tonelajeEntrante + ' Ton' : '--'"
+        descripcion="Tonelaje total recibido en planta"
+      ></app-dashboard-card>
+
+      <app-dashboard-card
+        titulo="Tonelaje Saliente"
+        [valor]="hayDatos() ? dashboardData()!.tonelajeSaliente + ' Ton' : '--'"
+        descripcion="Tonelaje total despachado"
+      ></app-dashboard-card>
+
+      <app-dashboard-card
+        titulo="Frecuencia de bomba de agua"
+        [valor]="hayDatos() ? dashboardData()!.frecuenciaBombaAgua + ' Hz' : '--'"
+        descripcion="Frecuencia operativa de la bomba"
+      ></app-dashboard-card>
+
+      <app-dashboard-card
+        titulo="Amperaje de la bomba"
+        [valor]="hayDatos() ? dashboardData()!.amperajeBomba + ' A' : '--'"
+        descripcion="Consumo eléctrico actual"
+      ></app-dashboard-card>
+
+      <app-dashboard-card
+        titulo="Presión de hidrociclones"
+        [valor]="hayDatos() ? dashboardData()!.presionHidrociclones + ' kg/cm²' : '--'"
+        descripcion="Presión actual del sistema"
+      ></app-dashboard-card>
+    </div>
+
+    <div class="grafica-card">
+      <h2>Tonelaje Promedio</h2>
+
+      @if (hayDatos() && dashboardData()!.graficaTonelaje.length > 0) {
+        <div class="grafica-wrapper">
+          <div class="grafica-eje-y">
+            <span>150</span>
+            <span>100</span>
+            <span>50</span>
+            <span>0</span>
+          </div>
+
+          <div class="grafica-area">
+            @for (item of dashboardData()!.graficaTonelaje; track item.label) {
+              <div class="barra-item">
+                <div class="barra-container">
+                  <div
+                    class="barra"
+                    [style.height.px]="getAlturaBarra(item.value)"
+                  ></div>
+                </div>
+                <span class="barra-label">{{ item.label }}</span>
+                <span class="barra-value">{{ item.value }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="grafica-vacia">
+          Sin datos para mostrar
+        </div>
+      }
+    </div>
+  </div>
+</div>

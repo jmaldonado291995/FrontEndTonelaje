@@ -1,0 +1,76 @@
+<div class="turnos-page">
+  <div class="encabezado">
+    <h1>Gestión de turnos</h1>
+    @if (usuarioActual()) {
+      <p>
+        Sesión actual:
+        <strong>{{ usuarioActual()!.username }}</strong>
+        -
+        <strong>{{ getNombreRol(usuarioActual()!.rol) }}</strong>
+      </p>
+    }
+  </div>
+
+  @if (puedeGestionarTurnos()) {
+    <app-turno-formulario
+      [asignacionEditar]="asignacionEditando()"
+      (guardado)="alGuardarFormulario()"
+      (cancelado)="alCancelarFormulario()"
+    ></app-turno-formulario>
+  }
+
+  <div class="tabla-card">
+    <div class="tabla-header">
+      <h2>Listado turnos operador</h2>
+    </div>
+
+    @if (error) {
+      <div class="alerta-error">{{ error }}</div>
+    }
+
+    @if (mensaje) {
+      <div class="alerta-ok">{{ mensaje }}</div>
+    }
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Operador</th>
+          <th>Turno</th>
+          <th>Supervisor</th>
+          <th>Fecha asignada</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (asignacion of asignaciones(); track asignacion.id) {
+          <tr>
+            <td>{{ asignacion.id }}</td>
+            <td>{{ asignacion.empleado.username }}</td>
+            <td>{{ asignacion.turno.name }}</td>
+            <td>{{ asignacion.supervisor.username }}</td>
+            <td>{{ asignacion.fechaAsignada }}</td>
+            <td class="acciones">
+              <button
+                type="button"
+                class="btn-editar"
+                (click)="editarAsignacion(asignacion)"
+              >
+                Editar
+              </button>
+
+              <button
+                type="button"
+                class="btn-eliminar"
+                (click)="eliminarAsignacion(asignacion.id)"
+              >
+                Eliminar
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

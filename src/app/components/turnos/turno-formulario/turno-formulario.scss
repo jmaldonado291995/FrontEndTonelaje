@@ -1,0 +1,72 @@
+.contenedor-formulario {
+  padding: 0;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.formulario {
+  display: grid;
+  gap: 16px;
+}
+
+.fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.campo {
+  display: grid;
+  gap: 6px;
+}
+
+.campo input,
+.campo select {
+  padding: 10px 12px;
+  border: 1px solid #cfcfcf;
+  border-radius: 8px;
+}
+
+button {
+  width: fit-content;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  font-weight: 600;
+}
+
+.error {
+  color: #c62828;
+}
+
+.alerta-error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #ffebee;
+  color: #b71c1c;
+  border: 1px solid #ef9a9a;
+}
+
+.alerta-ok {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #a5d6a7;
+}
+
+.acciones-formulario {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-secundario {
+  background: #6b7280;
+}

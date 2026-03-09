@@ -1,0 +1,19 @@
+<header class="header">
+  <div class="header-left">
+    <h1>Proyecto tonelaje</h1>
+    <span class="subtitulo">Sistema de gestión de pesaje</span>
+  </div>
+
+  <div class="header-right">
+    @if (usuarioActual()) {
+      <div class="usuario-box">
+        <span class="usuario-nombre">{{ usuarioActual()!.username }}</span>
+        <span class="usuario-rol">{{ getNombreRol(usuarioActual()!.rol) }}</span>
+      </div>
+    }
+
+    <button type="button" class="btn-logout" (click)="cerrarSesion()">
+      Cerrar sesión
+    </button>
+  </div>
+</header>

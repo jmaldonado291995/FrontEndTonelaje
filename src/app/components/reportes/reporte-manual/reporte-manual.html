@@ -1,0 +1,95 @@
+<div class="reporte-manual-page">
+  <div class="encabezado">
+    <h1>Reporte Histórico</h1>
+  </div>
+
+  <div class="filtros-card">
+    <form [formGroup]="form" class="filtros-form">
+      <div class="fila">
+        <div class="campo">
+          <label for="fechaInicio">Fecha Inicio</label>
+          <input id="fechaInicio" type="date" formControlName="fechaInicio" />
+        </div>
+
+        <div class="campo">
+          <label for="fechaFin">Fecha Fin</label>
+          <input id="fechaFin" type="date" formControlName="fechaFin" />
+        </div>
+
+        <div class="campo">
+          <label for="sede">Sede</label>
+          <select id="sede" formControlName="sede">
+            @for (item of sedes; track item) {
+              <option [value]="item">{{ item }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="acciones-filtros">
+        <button type="button" class="btn-buscar" (click)="buscar()">
+          Buscar
+        </button>
+
+        <button type="button" class="btn-exportar" (click)="exportarExcel()">
+          Exportar Excel
+        </button>
+
+        <button type="button" class="btn-limpiar" (click)="limpiar()">
+          Limpiar
+        </button>
+      </div>
+    </form>
+  </div>
+
+  @if (error) {
+    <div class="alerta-error">{{ error }}</div>
+  }
+
+  @if (mensaje) {
+    <div class="alerta-ok">{{ mensaje }}</div>
+  }
+
+  <div class="resultado-card">
+    @if (consultaRealizada() && resultados().length === 0) {
+      <div class="sin-datos">
+        Sin datos. Realice una consulta.
+      </div>
+    }
+
+    @if (resultados().length > 0) {
+      <table>
+        <thead>
+          <tr>
+            <th>Sede</th>
+            <th>Fecha Registro</th>
+            <th>Tonelaje Entrante (Ton)</th>
+            <th>Tonelaje Saliente (Ton)</th>
+            <th>Amperaje Bomba (A)</th>
+            <th>Frecuencia Bomba Agua (Hz)</th>
+            <th>Presión Hidrociclones (kg/cm²)</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of resultados(); track item.id) {
+            <tr>
+              <td>{{ item.sede }}</td>
+              <td>{{ item.fechaRegistro }}</td>
+              <td>{{ item.tonelajeEntrante }}</td>
+              <td>{{ item.tonelajeSaliente }}</td>
+              <td>{{ item.amperajeBomba }}</td>
+              <td>{{ item.frecuenciaBombaAgua }}</td>
+              <td>{{ item.presionHidrociclones }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    @if (!consultaRealizada() && resultados().length === 0) {
+      <div class="sin-datos">
+        Sin datos. Realice una consulta.
+      </div>
+    }
+  </div>
+</div>

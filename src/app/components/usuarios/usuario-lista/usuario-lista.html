@@ -1,0 +1,74 @@
+<div class="usuarios-page">
+  <div class="encabezado">
+    <h1>Gestión de usuarios</h1>
+    @if (usuarioActual()) {
+      <p>
+        Sesión actual:
+        <strong>{{ usuarioActual()!.username }}</strong>
+        -
+        <strong>{{ getNombreRol(usuarioActual()!.rol) }}</strong>
+      </p>
+    }
+  </div>
+
+  @if (puedeGestionarUsuarios()) {
+    <app-usuario-formulario
+      [usuarioEditar]="usuarioEditando()"
+      (guardado)="alGuardarFormulario()"
+      (cancelado)="alCancelarFormulario()"
+    ></app-usuario-formulario>
+  }
+
+  <div class="tabla-card">
+    <div class="tabla-header">
+      <h2>Listado de usuarios</h2>
+    </div>
+
+    @if (error) {
+      <div class="alerta-error">{{ error }}</div>
+    }
+
+    @if (mensaje) {
+      <div class="alerta-ok">{{ mensaje }}</div>
+    }
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Usuario</th>
+          <th>Rol</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (usuario of usuarios(); track usuario.id) {
+          <tr>
+            <td>{{ usuario.id }}</td>
+            <td>{{ usuario.username }}</td>
+            <td>{{ getNombreRol(usuario.rol) }}</td>
+            <td class="acciones">
+              <button
+                type="button"
+                class="btn-editar"
+                [appRoleDisable]="[Rol.ADMIN, Rol.SUPERVISOR]"
+                (click)="editarUsuario(usuario)"
+              >
+                Editar
+              </button>
+
+              <button
+                type="button"
+                class="btn-eliminar"
+                [appRoleDisable]="[Rol.ADMIN, Rol.SUPERVISOR]"
+                (click)="eliminarUsuario(usuario.id)"
+              >
+                Eliminar
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

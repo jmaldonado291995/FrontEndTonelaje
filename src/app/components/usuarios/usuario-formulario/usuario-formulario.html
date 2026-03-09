@@ -1,0 +1,71 @@
+<div class="contenedor-formulario">
+  <div class="card">
+    <h2>{{ modoEdicion ? 'Editar usuario' : 'Nuevo usuario' }}</h2>
+
+    <form [formGroup]="form" (ngSubmit)="guardar()" class="formulario">
+      <div class="campo">
+        <label for="username">Usuario</label>
+        <input id="username" type="text" formControlName="username" />
+        @if (form.controls.username.touched && form.controls.username.invalid) {
+          <small class="error">Ingrese un usuario válido</small>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="password">Clave</label>
+        <input id="password" type="password" formControlName="password" />
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <small class="error">La clave debe tener al menos 6 caracteres</small>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="confirmPassword">Confirmar clave</label>
+        <input
+          id="confirmPassword"
+          type="password"
+          formControlName="confirmPassword"
+        />
+        @if (form.controls.confirmPassword.touched && form.controls.confirmPassword.invalid) {
+          <small class="error">Debe confirmar la clave</small>
+        }
+        @if (form.hasError('passwordMismatch') && form.controls.confirmPassword.touched) {
+          <small class="error">Las claves no coinciden</small>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="rol">Rol</label>
+        <select id="rol" formControlName="rol">
+          <option value="">Seleccione</option>
+          @for (rol of rolesDisponibles; track rol) {
+            <option [value]="rol">{{ rol }}</option>
+          }
+        </select>
+        @if (form.controls.rol.touched && form.controls.rol.invalid) {
+          <small class="error">Seleccione un rol</small>
+        }
+      </div>
+
+      @if (error) {
+        <div class="alerta-error">{{ error }}</div>
+      }
+
+      @if (mensaje) {
+        <div class="alerta-ok">{{ mensaje }}</div>
+      }
+
+      <div class="acciones-formulario">
+        <button type="submit">
+          {{ modoEdicion ? 'Actualizar' : 'Guardar' }}
+        </button>
+
+        @if (modoEdicion) {
+          <button type="button" class="btn-secundario" (click)="cancelarEdicion()">
+            Cancelar
+          </button>
+        }
+      </div>
+    </form>
+  </div>
+</div>

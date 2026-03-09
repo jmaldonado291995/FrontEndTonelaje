@@ -1,0 +1,74 @@
+.turnos-page {
+  display: grid;
+  gap: 20px;
+}
+
+.encabezado h1 {
+  margin: 0 0 6px;
+}
+
+.tabla-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.tabla-header {
+  margin-bottom: 12px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e5e5e5;
+  text-align: left;
+  padding: 12px 10px;
+}
+
+th {
+  background: #f3f4f6;
+}
+
+button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #b91c1c;
+  color: #fff;
+}
+
+.alerta-error {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #ffebee;
+  color: #b71c1c;
+  border: 1px solid #ef9a9a;
+}
+
+.alerta-ok {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #a5d6a7;
+}
+.acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-editar {
+  background: #2563eb;
+}
+
+.btn-eliminar {
+  background: #b91c1c;
+}

@@ -1,0 +1,88 @@
+<div class="contenedor-formulario">
+  <div class="card">
+    <h2>{{ modoEdicion ? 'Editar turno operador' : 'Nuevo turno operador' }}</h2>
+
+    <form [formGroup]="form" (ngSubmit)="guardar()" class="formulario">
+      <div class="fila">
+        <div class="campo">
+          <label for="empleadoId">Operador</label>
+          <select id="empleadoId" formControlName="empleadoId">
+            <option [value]="0">Seleccione</option>
+            @for (operador of operadores(); track operador.id) {
+              <option [value]="operador.id">
+                {{ operador.username }}
+              </option>
+            }
+          </select>
+          @if (form.controls.empleadoId.touched && form.controls.empleadoId.invalid) {
+            <small class="error">Seleccione un operador</small>
+          }
+        </div>
+
+        <div class="campo">
+          <label for="supervisorId">Supervisor</label>
+          <select id="supervisorId" formControlName="supervisorId">
+            <option [value]="0">Seleccione</option>
+            @for (supervisor of supervisores(); track supervisor.id) {
+              <option [value]="supervisor.id">
+                {{ supervisor.username }}
+              </option>
+            }
+          </select>
+          @if (form.controls.supervisorId.touched && form.controls.supervisorId.invalid) {
+            <small class="error">Seleccione un supervisor</small>
+          }
+        </div>
+      </div>
+
+      <div class="fila">
+        <div class="campo">
+          <label for="fechaAsignada">Fecha asignada</label>
+          <input
+            id="fechaAsignada"
+            type="date"
+            formControlName="fechaAsignada"
+          />
+          @if (form.controls.fechaAsignada.touched && form.controls.fechaAsignada.invalid) {
+            <small class="error">Seleccione una fecha</small>
+          }
+        </div>
+
+        <div class="campo">
+          <label for="turnoId">Turno</label>
+          <select id="turnoId" formControlName="turnoId">
+            <option [value]="0">Seleccione</option>
+            @for (turno of turnos(); track turno.id) {
+              <option [value]="turno.id">
+                {{ turno.name }}
+              </option>
+            }
+          </select>
+          @if (form.controls.turnoId.touched && form.controls.turnoId.invalid) {
+            <small class="error">Seleccione un turno</small>
+          }
+        </div>
+      </div>
+
+      @if (error) {
+        <div class="alerta-error">{{ error }}</div>
+      }
+
+      @if (mensaje) {
+        <div class="alerta-ok">{{ mensaje }}</div>
+      }
+
+      <div class="acciones-formulario">
+        <button type="submit">
+          {{ modoEdicion ? 'Actualizar' : 'Guardar' }}
+        </button>
+
+        @if (modoEdicion) {
+          <button type="button" class="btn-secundario" (click)="cancelarEdicion()">
+            Cancelar
+          </button>
+        }
+      </div>
+    </form>
+  </div>
+</div>
