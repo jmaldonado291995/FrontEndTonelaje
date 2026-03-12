@@ -10,6 +10,13 @@
   gap: 20px;
 }
 
+.dashboard-filtros-fecha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
 .dashboard-header-info h1 {
   margin: 0 0 6px;
 }
@@ -58,6 +65,20 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(220px, 1fr));
   gap: 16px;
+}
+
+.dashboard-card-button {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-card-button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 4px;
+  border-radius: 12px;
 }
 
 .grafica-card {
@@ -162,6 +183,14 @@
 @media (max-width: 700px) {
   .dashboard-header {
     flex-direction: column;
+  }
+
+  .dashboard-filtros-fecha {
+    width: 100%;
+  }
+
+  .dashboard-fecha {
+    width: 100%;
   }
 
   .kpis-grid {

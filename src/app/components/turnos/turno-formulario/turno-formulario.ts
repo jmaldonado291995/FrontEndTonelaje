@@ -47,6 +47,11 @@ export class TurnoFormularioComponent implements OnChanges {
     turnoId: [0, [Validators.required, Validators.min(1)]]
   });
 
+  constructor() {
+    void this.usuarioService.loadUsuarios();
+    void this.turnoService.loadTurnos();
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['asignacionEditar']) {
       if (this.asignacionEditar) {
@@ -66,7 +71,7 @@ export class TurnoFormularioComponent implements OnChanges {
     return !!this.asignacionEditar;
   }
 
-  guardar(): void {
+  async guardar(): Promise<void> {
     this.mensaje = '';
     this.error = '';
 
@@ -99,7 +104,7 @@ export class TurnoFormularioComponent implements OnChanges {
     }
 
     if (this.modoEdicion && this.asignacionEditar) {
-      const resultado = this.turnoService.actualizarAsignacion(
+      const resultado = await this.turnoService.actualizarAsignacion(
         this.asignacionEditar.id,
         {
           supervisor: supervisorSeleccionado,
@@ -120,7 +125,7 @@ export class TurnoFormularioComponent implements OnChanges {
       return;
     }
 
-    const resultado = this.turnoService.asignarTurno({
+    const resultado = await this.turnoService.asignarTurno({
       supervisor: supervisorSeleccionado,
       empleado,
       turnoId: Number(turnoId),

@@ -1,84 +1,40 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { ReporteManual } from '../models/reporte-manual.model';
+import { API_BASE_URL } from '../config/api.config';
+import { toEndOfDayISO, toStartOfDayISO } from '../utils/api-mappers';
+
+interface VariableRecordResponse {
+  id: number;
+  value: number;
+  recordedAt: string;
+  site: string;
+  variableId: number;
+  variableName: string;
+}
+
+function normalizeVariableName(name?: string): string {
+  return (name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReporteService {
-  private readonly dataMock: ReporteManual[] = [
-    {
-      id: 1,
-      sede: 'Planta A',
-      fechaRegistro: '2026-01-01',
-      tonelajeEntrante: 50,
-      tonelajeSaliente: 120,
-      amperajeBomba: 60,
-      frecuenciaBombaAgua: 11.5,
-      presionHidrociclones: 2.5
-    },
-    {
-      id: 2,
-      sede: 'Planta B',
-      fechaRegistro: '2026-01-01',
-      tonelajeEntrante: 60,
-      tonelajeSaliente: 110,
-      amperajeBomba: 70,
-      frecuenciaBombaAgua: 10,
-      presionHidrociclones: 3.5
-    },
-    {
-      id: 3,
-      sede: 'Planta C',
-      fechaRegistro: '2026-01-02',
-      tonelajeEntrante: 70,
-      tonelajeSaliente: 90,
-      amperajeBomba: 80,
-      frecuenciaBombaAgua: 9.5,
-      presionHidrociclones: 5.5
-    },
-    {
-      id: 4,
-      sede: 'Planta A',
-      fechaRegistro: '2026-02-02',
-      tonelajeEntrante: 50,
-      tonelajeSaliente: 120,
-      amperajeBomba: 60,
-      frecuenciaBombaAgua: 11.5,
-      presionHidrociclones: 2.5
-    },
-    {
-      id: 5,
-      sede: 'Planta A',
-      fechaRegistro: '2026-02-27',
-      tonelajeEntrante: 50,
-      tonelajeSaliente: 70,
-      amperajeBomba: 11.5,
-      frecuenciaBombaAgua: 60,
-      presionHidrociclones: 2.5
-    },
-    {
-      id: 6,
-      sede: 'Planta B',
-      fechaRegistro: '2026-02-28',
-      tonelajeEntrante: 55,
-      tonelajeSaliente: 68,
-      amperajeBomba: 11.2,
-      frecuenciaBombaAgua: 59,
-      presionHidrociclones: 2.3
-    }
-  ];
+  constructor(private http: HttpClient) {}
 
   obtenerSedes(): string[] {
     return ['Todos', 'Planta A', 'Planta B', 'Planta C'];
   }
 
-  consultarReporteManual(filtros: {
+  async consultarReporteManual(filtros: {
     fechaInicio: string;
     fechaFin: string;
     sede: string;
-  }): { ok: boolean; message: string; data: ReporteManual[] } {
+  }): Promise<{ ok: boolean; message: string; data: ReporteManual[] }> {
     const { fechaInicio, fechaFin, sede } = filtros;
 
     if (!fechaInicio || !fechaFin) {
@@ -97,22 +53,75 @@ export class ReporteService {
       };
     }
 
-    let resultados = this.dataMock.filter(
-      item => item.fechaRegistro >= fechaInicio && item.fechaRegistro <= fechaFin
-    );
+    try {
+      const records = await firstValueFrom(
+        this.http.get<VariableRecordResponse[]>(`${API_BASE_URL}/variable-records/range`, {
+          params: {
+            start: toStartOfDayISO(fechaInicio),
+            end: toEndOfDayISO(fechaFin)
+          }
+        })
+      );
 
-    if (sede && sede !== 'Todos') {
-      resultados = resultados.filter(item => item.sede === sede);
+      const filtered = sede && sede !== 'Todos'
+        ? records.filter(item => item.site === sede)
+        : records;
+
+      const grouped = new Map<string, ReporteManual>();
+      let rowId = 1;
+
+      for (const item of filtered) {
+        const fechaRegistro = item.recordedAt.slice(0, 10);
+        const key = `${item.site}|${fechaRegistro}`;
+
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            id: rowId++,
+            sede: item.site,
+            fechaRegistro,
+            tonelajeEntrante: 0,
+            tonelajeSaliente: 0,
+            amperajeBomba: 0,
+            frecuenciaBombaAgua: 0,
+            presionHidrociclones: 0
+          });
+        }
+
+        const target = grouped.get(key)!;
+        const variable = normalizeVariableName(item.variableName);
+
+        if (variable === 'tonelajeentrante') {
+          target.tonelajeEntrante = Number(item.value);
+        } else if (variable === 'tonelajesaliente') {
+          target.tonelajeSaliente = Number(item.value);
+        } else if (variable === 'amperajebomba') {
+          target.amperajeBomba = Number(item.value);
+        } else if (variable === 'frecuenciabombaagua') {
+          target.frecuenciaBombaAgua = Number(item.value);
+        } else if (variable === 'presionhidrociclones') {
+          target.presionHidrociclones = Number(item.value);
+        }
+      }
+
+      const resultados = Array.from(grouped.values()).sort((a, b) =>
+        a.fechaRegistro.localeCompare(b.fechaRegistro)
+      );
+
+      return {
+        ok: true,
+        message:
+          resultados.length > 0
+            ? 'Consulta realizada correctamente'
+            : 'Sin datos. Realice una consulta.',
+        data: resultados
+      };
+    } catch {
+      return {
+        ok: false,
+        message: 'No se pudo consultar el reporte manual',
+        data: []
+      };
     }
-
-    return {
-      ok: true,
-      message:
-        resultados.length > 0
-          ? 'Consulta realizada correctamente'
-          : 'Sin datos. Realice una consulta.',
-      data: resultados
-    };
   }
 
   exportarReporteManualExcel(

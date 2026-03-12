@@ -1,4 +1,4 @@
- import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import {
   FormBuilder,
@@ -7,6 +7,7 @@ import {
 } from '@angular/forms';
 import { ReporteConfig } from '../../../models/reporte-config.model';
 import { ReporteConfigService } from '../../../services/reporte-config.service';
+import { SessionService } from '../../../services/session.service';
 
 @Component({
   selector: 'app-reporte-configuracion',
@@ -18,6 +19,7 @@ import { ReporteConfigService } from '../../../services/reporte-config.service';
 export class ReporteConfiguracionComponent {
   private fb = inject(FormBuilder);
   private reporteConfigService = inject(ReporteConfigService);
+  private sessionService = inject(SessionService);
 
   readonly configuraciones = computed(() => this.reporteConfigService.configuraciones());
 
@@ -27,14 +29,17 @@ export class ReporteConfiguracionComponent {
   idEditando = signal<number | null>(null);
 
   form = this.fb.nonNullable.group({
-    codigo: ['', [Validators.required]],
-    horaEjecucion: ['', [Validators.required]],
-    fechaInicio: ['', [Validators.required]],
-    fechaFin: ['', [Validators.required]],
+    sendTime: ['', [Validators.required]],
+    active: [true, [Validators.required]],
+    format: ['XLSX', [Validators.required]],
     destinatariosTexto: ['', [Validators.required]]
   });
 
-  guardar(): void {
+  constructor() {
+    void this.reporteConfigService.loadConfiguraciones();
+  }
+
+  async guardar(): Promise<void> {
     this.mensaje = '';
     this.error = '';
 
@@ -43,8 +48,7 @@ export class ReporteConfiguracionComponent {
       return;
     }
 
-    const { codigo, horaEjecucion, fechaInicio, fechaFin, destinatariosTexto } =
-      this.form.getRawValue();
+    const { sendTime, active, format, destinatariosTexto } = this.form.getRawValue();
 
     const destinatarios = destinatariosTexto
       .split(',')
@@ -65,16 +69,24 @@ export class ReporteConfiguracionComponent {
       return;
     }
 
+    const usuario = this.sessionService.usuarioActual();
+
+    if (!usuario) {
+      this.error = 'No existe una sesión activa';
+      return;
+    }
+
     const payload: Omit<ReporteConfig, 'id'> = {
-      codigo,
-      horaEjecucion,
-      fechaInicio,
-      fechaFin,
+      sendTime,
+      active,
+      format,
+      createdById: usuario.id,
+      createdByUsername: usuario.username,
       destinatarios
     };
 
     if (this.modoEdicion() && this.idEditando()) {
-      const resultado = this.reporteConfigService.actualizar(
+      const resultado = await this.reporteConfigService.actualizar(
         this.idEditando()!,
         payload
       );
@@ -89,7 +101,7 @@ export class ReporteConfiguracionComponent {
       return;
     }
 
-    const resultado = this.reporteConfigService.crear(payload);
+    const resultado = await this.reporteConfigService.crear(payload);
 
     if (!resultado.ok) {
       this.error = resultado.message;
@@ -107,19 +119,18 @@ export class ReporteConfiguracionComponent {
     this.idEditando.set(config.id);
 
     this.form.patchValue({
-      codigo: config.codigo,
-      horaEjecucion: config.horaEjecucion,
-      fechaInicio: config.fechaInicio,
-      fechaFin: config.fechaFin,
+      sendTime: config.sendTime,
+      active: config.active,
+      format: config.format,
       destinatariosTexto: config.destinatarios.join(', ')
     });
   }
 
-  eliminar(id: number): void {
+  async eliminar(id: number): Promise<void> {
     this.mensaje = '';
     this.error = '';
 
-    const resultado = this.reporteConfigService.eliminar(id);
+    const resultado = await this.reporteConfigService.eliminar(id);
 
     if (!resultado.ok) {
       this.error = resultado.message;
@@ -141,10 +152,9 @@ export class ReporteConfiguracionComponent {
 
   private limpiarFormulario(): void {
     this.form.reset({
-      codigo: '',
-      horaEjecucion: '',
-      fechaInicio: '',
-      fechaFin: '',
+      sendTime: '',
+      active: true,
+      format: 'XLSX',
       destinatariosTexto: ''
     });
   }

@@ -31,6 +31,10 @@ export class UsuarioListaComponent {
   mensaje = '';
   error = '';
 
+  constructor() {
+    void this.usuarioService.loadUsuarios();
+  }
+
   puedeGestionarUsuarios(): boolean {
     const usuario = this.usuarioActual();
     return !!usuario && (usuario.rol === Rol.ADMIN || usuario.rol === Rol.SUPERVISOR);
@@ -51,7 +55,7 @@ export class UsuarioListaComponent {
     this.usuarioEditando.set(null);
   }
 
-  eliminarUsuario(id: number): void {
+  async eliminarUsuario(id: number): Promise<void> {
     this.mensaje = '';
     this.error = '';
 
@@ -60,7 +64,7 @@ export class UsuarioListaComponent {
       return;
     }
 
-    const resultado = this.usuarioService.eliminar(id);
+    const resultado = await this.usuarioService.eliminar(id);
 
     if (!resultado.ok) {
       this.error = resultado.message;

@@ -25,6 +25,11 @@ export class TurnoListaComponent {
   mensaje = '';
   error = '';
 
+  constructor() {
+    void this.turnoService.loadTurnos();
+    void this.turnoService.loadAsignaciones();
+  }
+
   puedeGestionarTurnos(): boolean {
     const usuario = this.usuarioActual();
     return !!usuario && (usuario.rol === Rol.ADMIN || usuario.rol === Rol.SUPERVISOR);
@@ -45,7 +50,7 @@ export class TurnoListaComponent {
     this.asignacionEditando.set(null);
   }
 
-  eliminarAsignacion(id: number): void {
+  async eliminarAsignacion(id: number): Promise<void> {
     this.mensaje = '';
     this.error = '';
 
@@ -54,7 +59,7 @@ export class TurnoListaComponent {
       return;
     }
 
-    const resultado = this.turnoService.eliminarAsignacion(id);
+    const resultado = await this.turnoService.eliminarAsignacion(id);
 
     if (!resultado.ok) {
       this.error = resultado.message;

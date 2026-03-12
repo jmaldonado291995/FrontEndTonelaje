@@ -1,13 +1,12 @@
 import { Injectable, computed, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { Rol } from '../enums/rol.enum';
-import { NombreTurno } from '../enums/turno.enum';
 import { AsignacionTurno } from '../models/asignacion-turno.model';
 import { Turno } from '../models/turno.model';
 import { Usuario } from '../models/usuario.model';
-import { StorageService } from './storage.service';
-
-const SHIFTS_KEY = 'proyecto-tonelaje-shifts';
-const ASSIGNMENTS_KEY = 'proyecto-tonelaje-shift-assignments';
+import { API_BASE_URL } from '../config/api.config';
+import { mapApiShiftNameToFront } from '../utils/api-mappers';
 
 @Injectable({
   providedIn: 'root'
@@ -19,40 +18,77 @@ export class TurnoService {
   readonly turnos = computed(() => this._turnos());
   readonly asignaciones = computed(() => this._asignaciones());
 
-  constructor(private storageService: StorageService) {
-    const turnosGuardados = this.storageService.getItem<Turno[]>(SHIFTS_KEY);
-    const asignacionesGuardadas = this.storageService.getItem<AsignacionTurno[]>(ASSIGNMENTS_KEY);
+  constructor(private http: HttpClient) {
+    this.loadTurnos();
+    this.loadAsignaciones();
+  }
 
-    if (turnosGuardados && turnosGuardados.length > 0) {
-      this._turnos.set(turnosGuardados);
-    } else {
-      const turnosIniciales: Turno[] = [
-        {
-          id: 1,
-          name: NombreTurno.MANANA,
-          startTime: '06:00',
-          endTime: '14:00'
-        },
-        {
-          id: 2,
-          name: NombreTurno.TARDE,
-          startTime: '14:00',
-          endTime: '22:00'
-        },
-        {
-          id: 3,
-          name: NombreTurno.NOCHE,
-          startTime: '22:00',
-          endTime: '06:00'
-        }
-      ];
+  async loadTurnos(): Promise<void> {
+    try {
+      const turnos = await firstValueFrom(
+        this.http.get<Array<{ id: number; name: string; startTime: string; endTime: string }>>(
+          `${API_BASE_URL}/shifts`
+        )
+      );
 
-      this._turnos.set(turnosIniciales);
-      this.persistirTurnos();
+      this._turnos.set(
+        turnos.map(item => ({
+          id: item.id,
+          name: mapApiShiftNameToFront(item.name),
+          startTime: item.startTime,
+          endTime: item.endTime
+        }))
+      );
+    } catch {
+      this._turnos.set([]);
     }
+  }
 
-    if (asignacionesGuardadas && asignacionesGuardadas.length > 0) {
-      this._asignaciones.set(asignacionesGuardadas);
+  async loadAsignaciones(): Promise<void> {
+    try {
+      const asignaciones = await firstValueFrom(
+        this.http.get<
+          Array<{
+            id: number;
+            shiftId: number;
+            shiftName: string;
+            shiftStartTime: string;
+            shiftEndTime: string;
+            supervisorId: number;
+            supervisorUsername: string;
+            employeeId: number;
+            employeeUsername: string;
+            assignedDate: string;
+          }>
+        >(`${API_BASE_URL}/shift-assignments`)
+      );
+
+      this._asignaciones.set(
+        asignaciones.map(item => ({
+          id: item.id,
+          supervisor: {
+            id: item.supervisorId,
+            username: item.supervisorUsername,
+            password: '',
+            rol: Rol.SUPERVISOR
+          },
+          empleado: {
+            id: item.employeeId,
+            username: item.employeeUsername,
+            password: '',
+            rol: Rol.OPERADOR
+          },
+          turno: {
+            id: item.shiftId,
+            name: mapApiShiftNameToFront(item.shiftName),
+            startTime: item.shiftStartTime,
+            endTime: item.shiftEndTime
+          },
+          fechaAsignada: item.assignedDate
+        }))
+      );
+    } catch {
+      this._asignaciones.set([]);
     }
   }
 
@@ -80,12 +116,12 @@ export class TurnoService {
     return usuario.rol === Rol.ADMIN || usuario.rol === Rol.SUPERVISOR;
   }
 
-  asignarTurno(params: {
+  async asignarTurno(params: {
     supervisor: Usuario;
     empleado: Usuario;
     turnoId: number;
     fechaAsignada: string;
-  }): { ok: boolean; message: string } {
+  }): Promise<{ ok: boolean; message: string }> {
     const { supervisor, empleado, turnoId, fechaAsignada } = params;
 
     if (!this.puedeAsignarTurno(supervisor)) {
@@ -102,40 +138,31 @@ export class TurnoService {
       };
     }
 
-    if (this.tieneAsignacion(empleado.id)) {
+    try {
+      await firstValueFrom(
+        this.http.post(`${API_BASE_URL}/shift-assignments`, {
+          supervisorId: supervisor.id,
+          employeeId: empleado.id,
+          shiftId: turnoId,
+          assignedDate: fechaAsignada
+        })
+      );
+
+      await this.loadAsignaciones();
+
+      return {
+        ok: true,
+        message: 'Turno asignado correctamente'
+      };
+    } catch {
       return {
         ok: false,
-        message: 'No es posible registrar más de un turno al operador'
+        message: 'No se pudo asignar el turno'
       };
     }
-
-    const turno = this.getTurnoById(turnoId);
-
-    if (!turno) {
-      return {
-        ok: false,
-        message: 'Turno no encontrado'
-      };
-    }
-
-    const nuevaAsignacion: AsignacionTurno = {
-      id: this.generarAsignacionId(),
-      supervisor,
-      empleado,
-      turno,
-      fechaAsignada
-    };
-
-    this._asignaciones.update(asignaciones => [...asignaciones, nuevaAsignacion]);
-    this.persistirAsignaciones();
-
-    return {
-      ok: true,
-      message: 'Turno asignado correctamente'
-    };
   }
 
-  eliminarAsignacion(id: number): { ok: boolean; message: string } {
+  async eliminarAsignacion(id: number): Promise<{ ok: boolean; message: string }> {
     const existe = this._asignaciones().some(item => item.id === id);
 
     if (!existe) {
@@ -145,30 +172,23 @@ export class TurnoService {
       };
     }
 
-    this._asignaciones.update(asignaciones => asignaciones.filter(item => item.id !== id));
-    this.persistirAsignaciones();
+    try {
+      await firstValueFrom(this.http.delete(`${API_BASE_URL}/shift-assignments/${id}`));
+      this._asignaciones.update(asignaciones => asignaciones.filter(item => item.id !== id));
 
-    return {
-      ok: true,
-      message: 'Asignación eliminada correctamente'
-    };
+      return {
+        ok: true,
+        message: 'Asignación eliminada correctamente'
+      };
+    } catch {
+      return {
+        ok: false,
+        message: 'No se pudo eliminar la asignación'
+      };
+    }
   }
 
-  private persistirTurnos(): void {
-    this.storageService.setItem(SHIFTS_KEY, this._turnos());
-  }
-
-  private persistirAsignaciones(): void {
-    this.storageService.setItem(ASSIGNMENTS_KEY, this._asignaciones());
-  }
-
-  private generarAsignacionId(): number {
-    const ids = this._asignaciones().map(item => item.id);
-    return ids.length ? Math.max(...ids) + 1 : 1;
-  }
-
-
-  actualizarAsignacion(
+  async actualizarAsignacion(
     id: number,
     params: {
       supervisor: Usuario;
@@ -176,7 +196,7 @@ export class TurnoService {
       turnoId: number;
       fechaAsignada: string;
     }
-  ): { ok: boolean; message: string } {
+  ): Promise<{ ok: boolean; message: string }> {
     const { supervisor, empleado, turnoId, fechaAsignada } = params;
 
     const index = this._asignaciones().findIndex(item => item.id === id);
@@ -202,42 +222,27 @@ export class TurnoService {
       };
     }
 
-    const existeOtraAsignacion = this._asignaciones().some(
-      item => item.id !== id && item.empleado.id === empleado.id
-    );
+    try {
+      await firstValueFrom(
+        this.http.put(`${API_BASE_URL}/shift-assignments/${id}`, {
+          supervisorId: supervisor.id,
+          employeeId: empleado.id,
+          shiftId: turnoId,
+          assignedDate: fechaAsignada
+        })
+      );
 
-    if (existeOtraAsignacion) {
+      await this.loadAsignaciones();
+
+      return {
+        ok: true,
+        message: 'Asignación actualizada correctamente'
+      };
+    } catch {
       return {
         ok: false,
-        message: 'No es posible registrar más de un turno al operador'
+        message: 'No se pudo actualizar la asignación'
       };
     }
-
-    const turno = this.getTurnoById(turnoId);
-
-    if (!turno) {
-      return {
-        ok: false,
-        message: 'Turno no encontrado'
-      };
-    }
-
-    const actualizadas = [...this._asignaciones()];
-    actualizadas[index] = {
-      ...actualizadas[index],
-      supervisor,
-      empleado,
-      turno,
-      fechaAsignada
-    };
-
-    this._asignaciones.set(actualizadas);
-    this.persistirAsignaciones();
-
-    return {
-      ok: true,
-      message: 'Asignación actualizada correctamente'
-    };
   }
-
 }

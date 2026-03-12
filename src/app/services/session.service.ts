@@ -11,24 +11,31 @@ const SESSION_KEY = 'proyecto-tonelaje-session';
 export class SessionService {
   private readonly _sesion = signal<Sesion>({
     autenticado: false,
-    usuario: null
+    usuario: null,
+    token: null
   });
 
   readonly sesion = computed(() => this._sesion());
   readonly usuarioActual = computed(() => this._sesion().usuario);
   readonly estaAutenticado = computed(() => this._sesion().autenticado);
+  readonly token = computed(() => this._sesion().token);
 
   constructor(private storageService: StorageService) {
     const sesionGuardada = this.storageService.getItem<Sesion>(SESSION_KEY);
     if (sesionGuardada) {
-      this._sesion.set(sesionGuardada);
+      this._sesion.set({
+        autenticado: sesionGuardada.autenticado,
+        usuario: sesionGuardada.usuario,
+        token: sesionGuardada.token ?? null
+      });
     }
   }
 
-  setSesion(usuario: Usuario): void {
+  setSesion(usuario: Usuario, token: string): void {
     const sesion: Sesion = {
       autenticado: true,
-      usuario
+      usuario,
+      token
     };
 
     this._sesion.set(sesion);
@@ -38,7 +45,8 @@ export class SessionService {
   clearSesion(): void {
     const sesionVacia: Sesion = {
       autenticado: false,
-      usuario: null
+      usuario: null,
+      token: null
     };
 
     this._sesion.set(sesionVacia);

@@ -1,8 +1,8 @@
 import { Injectable, computed, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { ReporteConfig } from '../models/reporte-config.model';
-import { StorageService } from './storage.service';
-
-const REPORTE_CONFIG_KEY = 'proyecto-tonelaje-reporte-config';
+import { API_BASE_URL } from '../config/api.config';
 
 @Injectable({
   providedIn: 'root'
@@ -12,34 +12,48 @@ export class ReporteConfigService {
 
   readonly configuraciones = computed(() => this._configuraciones());
 
-  constructor(private storageService: StorageService) {
-    const guardadas =
-      this.storageService.getItem<ReporteConfig[]>(REPORTE_CONFIG_KEY);
+  constructor(private http: HttpClient) {
+    this.loadConfiguraciones();
+  }
 
-    if (guardadas && guardadas.length > 0) {
-      this._configuraciones.set(guardadas);
-    } else {
-      const iniciales: ReporteConfig[] = [
-        {
-          id: 1,
-          codigo: '0001',
-          horaEjecucion: '07:00',
-          fechaInicio: '2026-01-01',
-          fechaFin: '2026-01-01',
-          destinatarios: ['lsilvera@gmail.com']
-        },
-        {
-          id: 2,
-          codigo: '0002',
-          horaEjecucion: '21:00',
-          fechaInicio: '2026-01-01',
-          fechaFin: '2026-01-01',
-          destinatarios: ['lsilvera@gmail.com']
-        }
-      ];
+  async loadConfiguraciones(): Promise<void> {
+    try {
+      const configs = await firstValueFrom(
+        this.http.get<
+          Array<{
+            id: number;
+            sendTime: string;
+            active: boolean;
+            format: string;
+            createdById: number;
+            createdByUsername?: string;
+          }>
+        >(`${API_BASE_URL}/report-configurations`)
+      );
 
-      this._configuraciones.set(iniciales);
-      this.persistir();
+      const withRecipients = await Promise.all(
+        configs.map(async config => {
+          const recipients = await firstValueFrom(
+            this.http.get<Array<{ id: number; email: string }>>(
+              `${API_BASE_URL}/report-recipients/configuration/${config.id}`
+            )
+          );
+
+          return {
+            id: config.id,
+            sendTime: config.sendTime,
+            active: config.active,
+            format: config.format,
+            createdById: config.createdById,
+            createdByUsername: config.createdByUsername,
+            destinatarios: recipients.map(item => item.email)
+          } as ReporteConfig;
+        })
+      );
+
+      this._configuraciones.set(withRecipients);
+    } catch {
+      this._configuraciones.set([]);
     }
   }
 
@@ -51,89 +65,60 @@ export class ReporteConfigService {
     return this._configuraciones().find(item => item.id === id);
   }
 
-  crear(config: Omit<ReporteConfig, 'id'>): { ok: boolean; message: string } {
-    if (
-      this._configuraciones().some(
-        item => item.codigo.trim().toLowerCase() === config.codigo.trim().toLowerCase()
-      )
-    ) {
+  async crear(config: Omit<ReporteConfig, 'id'>): Promise<{ ok: boolean; message: string }> {
+    if (!config.destinatarios || config.destinatarios.length === 0) {
       return {
         ok: false,
-        message: 'El código ya existe'
+        message: 'Debe ingresar al menos un destinatario'
       };
     }
 
-    if (config.fechaFin < config.fechaInicio) {
+    try {
+      const creada = await firstValueFrom(
+        this.http.post<{
+          id: number;
+          sendTime: string;
+          active: boolean;
+          format: string;
+          createdById: number;
+          createdByUsername?: string;
+        }>(`${API_BASE_URL}/report-configurations`, {
+          sendTime: config.sendTime,
+          active: config.active,
+          format: config.format,
+          createdById: config.createdById
+        })
+      );
+
+      await Promise.all(
+        config.destinatarios.map(email =>
+          firstValueFrom(
+            this.http.post(`${API_BASE_URL}/report-recipients`, {
+              email,
+              reportConfigurationId: creada.id
+            })
+          )
+        )
+      );
+
+      await this.loadConfiguraciones();
+
+      return {
+        ok: true,
+        message: 'Configuración registrada correctamente'
+      };
+    } catch {
       return {
         ok: false,
-        message: 'La fecha fin no puede ser menor que la fecha inicio'
+        message: 'No se pudo registrar la configuración'
       };
     }
-
-    const nueva: ReporteConfig = {
-      ...config,
-      id: this.generarId()
-    };
-
-    this._configuraciones.update(items => [...items, nueva]);
-    this.persistir();
-
-    return {
-      ok: true,
-      message: 'Configuración registrada correctamente'
-    };
   }
 
-  actualizar(
+  async actualizar(
     id: number,
     cambios: Omit<ReporteConfig, 'id'>
-  ): { ok: boolean; message: string } {
-    const items = this._configuraciones();
-    const index = items.findIndex(item => item.id === id);
-
-    if (index === -1) {
-      return {
-        ok: false,
-        message: 'Configuración no encontrada'
-      };
-    }
-
-    if (
-      items.some(
-        item =>
-          item.id !== id &&
-          item.codigo.trim().toLowerCase() === cambios.codigo.trim().toLowerCase()
-      )
-    ) {
-      return {
-        ok: false,
-        message: 'El código ya existe'
-      };
-    }
-
-    if (cambios.fechaFin < cambios.fechaInicio) {
-      return {
-        ok: false,
-        message: 'La fecha fin no puede ser menor que la fecha inicio'
-      };
-    }
-
-    const actualizados = [...items];
-    actualizados[index] = {
-      ...actualizados[index],
-      ...cambios
-    };
-
-    this._configuraciones.set(actualizados);
-    this.persistir();
-
-    return {
-      ok: true,
-      message: 'Configuración actualizada correctamente'
-    };
-  }
-
-  eliminar(id: number): { ok: boolean; message: string } {
+  ): Promise<{ ok: boolean; message: string }> {
     const existe = this._configuraciones().some(item => item.id === id);
 
     if (!existe) {
@@ -143,21 +128,84 @@ export class ReporteConfigService {
       };
     }
 
-    this._configuraciones.update(items => items.filter(item => item.id !== id));
-    this.persistir();
+    try {
+      await firstValueFrom(
+        this.http.put(`${API_BASE_URL}/report-configurations/${id}`, {
+          sendTime: cambios.sendTime,
+          active: cambios.active,
+          format: cambios.format,
+          createdById: cambios.createdById
+        })
+      );
 
-    return {
-      ok: true,
-      message: 'Configuración eliminada correctamente'
-    };
+      const existentes = await firstValueFrom(
+        this.http.get<Array<{ id: number; email: string }>>(
+          `${API_BASE_URL}/report-recipients/configuration/${id}`
+        )
+      );
+
+      await Promise.all(
+        existentes.map(item => firstValueFrom(this.http.delete(`${API_BASE_URL}/report-recipients/${item.id}`)))
+      );
+
+      await Promise.all(
+        cambios.destinatarios.map(email =>
+          firstValueFrom(
+            this.http.post(`${API_BASE_URL}/report-recipients`, {
+              email,
+              reportConfigurationId: id
+            })
+          )
+        )
+      );
+
+      await this.loadConfiguraciones();
+
+      return {
+        ok: true,
+        message: 'Configuración actualizada correctamente'
+      };
+    } catch {
+      return {
+        ok: false,
+        message: 'No se pudo actualizar la configuración'
+      };
+    }
   }
 
-  private persistir(): void {
-    this.storageService.setItem(REPORTE_CONFIG_KEY, this._configuraciones());
-  }
+  async eliminar(id: number): Promise<{ ok: boolean; message: string }> {
+    const existe = this._configuraciones().some(item => item.id === id);
 
-  private generarId(): number {
-    const ids = this._configuraciones().map(item => item.id);
-    return ids.length ? Math.max(...ids) + 1 : 1;
+    if (!existe) {
+      return {
+        ok: false,
+        message: 'Configuración no encontrada'
+      };
+    }
+
+    try {
+      const existentes = await firstValueFrom(
+        this.http.get<Array<{ id: number; email: string }>>(
+          `${API_BASE_URL}/report-recipients/configuration/${id}`
+        )
+      );
+
+      await Promise.all(
+        existentes.map(item => firstValueFrom(this.http.delete(`${API_BASE_URL}/report-recipients/${item.id}`)))
+      );
+
+      await firstValueFrom(this.http.delete(`${API_BASE_URL}/report-configurations/${id}`));
+      this._configuraciones.update(items => items.filter(item => item.id !== id));
+
+      return {
+        ok: true,
+        message: 'Configuración eliminada correctamente'
+      };
+    } catch {
+      return {
+        ok: false,
+        message: 'No se pudo eliminar la configuración'
+      };
+    }
   }
 }
