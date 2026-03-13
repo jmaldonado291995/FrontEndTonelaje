@@ -1,8 +1,6 @@
-import { NombreTurno } from '../enums/turno.enum';
-
 export interface Turno {
   id: number;
-  name: NombreTurno;
+  name: string;
   startTime: string;
   endTime: string;
 }

@@ -26,14 +26,22 @@ export function mapFrontRoleToApi(rol: Rol): 'ADMIN' | 'SUPERVISOR' | 'OPERATOR'
 }
 
 export function mapApiShiftNameToFront(name: string): NombreTurno {
-  const normalized = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  const normalized = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase();
 
-  if (normalized === 'MANANA') {
+  if (normalized.includes('MANANA')) {
     return NombreTurno.MANANA;
   }
 
-  if (normalized === 'TARDE') {
+  if (normalized.includes('TARDE')) {
     return NombreTurno.TARDE;
+  }
+
+  if (normalized.includes('NOCHE')) {
+    return NombreTurno.NOCHE;
   }
 
   return NombreTurno.NOCHE;

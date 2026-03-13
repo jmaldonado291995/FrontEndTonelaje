@@ -54,7 +54,7 @@
             <option [value]="0">Seleccione</option>
             @for (turno of turnos(); track turno.id) {
               <option [value]="turno.id">
-                {{ turno.name }}
+                {{ turno.name }} ({{ turno.startTime }} - {{ turno.endTime }})
               </option>
             }
           </select>

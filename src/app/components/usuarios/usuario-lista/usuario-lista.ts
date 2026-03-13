@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { RoleDisableDirective } from '../../../directives/role-disable.directive';
 import { Rol } from '../../../enums/rol.enum';
 import { Usuario } from '../../../models/usuario.model';
 import { SessionService } from '../../../services/session.service';
@@ -10,11 +9,7 @@ import { UsuarioFormularioComponent } from '../usuario-formulario/usuario-formul
 @Component({
   selector: 'app-usuario-lista',
   standalone: true,
-  imports: [
-    CommonModule,
-    UsuarioFormularioComponent,
-    RoleDisableDirective
-  ],
+  imports: [CommonModule, UsuarioFormularioComponent],
   templateUrl: './usuario-lista.html',
   styleUrl: './usuario-lista.scss'
 })
@@ -35,14 +30,33 @@ export class UsuarioListaComponent {
     void this.usuarioService.loadUsuarios();
   }
 
-  puedeGestionarUsuarios(): boolean {
+  puedeCrearUsuarios(): boolean {
     const usuario = this.usuarioActual();
     return !!usuario && (usuario.rol === Rol.ADMIN || usuario.rol === Rol.SUPERVISOR);
+  }
+
+  puedeMostrarFormulario(): boolean {
+    return this.puedeCrearUsuarios() || !!this.usuarioEditando();
+  }
+
+  puedeVerAcciones(): boolean {
+    return this.puedeCrearUsuarios();
+  }
+
+  puedeGestionarUsuario(usuarioObjetivo: Usuario): boolean {
+    const usuarioSesion = this.usuarioActual();
+    return this.usuarioService.puedeGestionarUsuario(usuarioSesion?.rol, usuarioObjetivo);
   }
 
   editarUsuario(usuario: Usuario): void {
     this.mensaje = '';
     this.error = '';
+
+    if (!this.puedeGestionarUsuario(usuario)) {
+      this.error = 'No tiene permisos para editar este usuario';
+      return;
+    }
+
     this.usuarioEditando.set(usuario);
   }
 
@@ -59,8 +73,15 @@ export class UsuarioListaComponent {
     this.mensaje = '';
     this.error = '';
 
-    if (!this.puedeGestionarUsuarios()) {
-      this.error = 'No tiene permisos para eliminar usuarios';
+    const usuarioObjetivo = this.usuarioService.getById(id);
+
+    if (!usuarioObjetivo) {
+      this.error = 'Usuario no encontrado';
+      return;
+    }
+
+    if (!this.puedeGestionarUsuario(usuarioObjetivo)) {
+      this.error = 'No tiene permisos para eliminar este usuario';
       return;
     }
 

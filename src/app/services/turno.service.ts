@@ -6,7 +6,6 @@ import { AsignacionTurno } from '../models/asignacion-turno.model';
 import { Turno } from '../models/turno.model';
 import { Usuario } from '../models/usuario.model';
 import { API_BASE_URL } from '../config/api.config';
-import { mapApiShiftNameToFront } from '../utils/api-mappers';
 
 @Injectable({
   providedIn: 'root'
@@ -34,7 +33,7 @@ export class TurnoService {
       this._turnos.set(
         turnos.map(item => ({
           id: item.id,
-          name: mapApiShiftNameToFront(item.name),
+          name: item.name,
           startTime: item.startTime,
           endTime: item.endTime
         }))
@@ -80,7 +79,7 @@ export class TurnoService {
           },
           turno: {
             id: item.shiftId,
-            name: mapApiShiftNameToFront(item.shiftName),
+            name: item.shiftName,
             startTime: item.shiftStartTime,
             endTime: item.shiftEndTime
           },
