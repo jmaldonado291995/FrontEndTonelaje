@@ -1,8 +1,9 @@
 export interface ReporteConfig {
   id: number;
-  codigo: string;
-  horaEjecucion: string;
-  fechaInicio: string;
-  fechaFin: string;
+  sendTime: string;
+  active: boolean;
+  format: string;
+  createdById: number;
+  createdByUsername?: string;
   destinatarios: string[];
 }

@@ -19,8 +19,8 @@ export class HeaderComponent {
 
   readonly usuarioActual = computed(() => this.sessionService.usuarioActual());
 
-  cerrarSesion(): void {
-    this.authService.logout();
+  async cerrarSesion(): Promise<void> {
+    await this.authService.logout();
     this.router.navigate(['/login']);
   }
 

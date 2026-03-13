@@ -1,9 +1,10 @@
 import { Injectable, computed, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { Rol } from '../enums/rol.enum';
 import { Usuario } from '../models/usuario.model';
-import { StorageService } from './storage.service';
-
-const USERS_KEY = 'proyecto-tonelaje-users';
+import { API_BASE_URL } from '../config/api.config';
+import { mapApiRoleToFront, mapFrontRoleToApi } from '../utils/api-mappers';
 
 @Injectable({
   providedIn: 'root'
@@ -19,23 +20,26 @@ export class UsuarioService {
     this._usuarios().filter(usuario => usuario.rol === Rol.OPERADOR)
   );
 
-  constructor(private storageService: StorageService) {
-    const usuariosGuardados = this.storageService.getItem<Usuario[]>(USERS_KEY);
+  constructor(private http: HttpClient) {
+    this.loadUsuarios();
+  }
 
-    if (usuariosGuardados && usuariosGuardados.length > 0) {
-      this._usuarios.set(usuariosGuardados);
-    } else {
-      const usuariosIniciales: Usuario[] = [
-        {
-          id: 1,
-          username: 'Admin',
-          password: '123456',
-          rol: Rol.ADMIN
-        }
-      ];
+  async loadUsuarios(): Promise<void> {
+    try {
+      const users = await firstValueFrom(
+        this.http.get<Array<{ id: number; username: string; role: string }>>(`${API_BASE_URL}/users`)
+      );
 
-      this._usuarios.set(usuariosIniciales);
-      this.persistirUsuarios();
+      this._usuarios.set(
+        users.map(user => ({
+          id: user.id,
+          username: user.username,
+          password: '',
+          rol: mapApiRoleToFront(user.role)
+        }))
+      );
+    } catch {
+      this._usuarios.set([]);
     }
   }
 
@@ -59,7 +63,7 @@ export class UsuarioService {
     );
   }
 
-  crear(usuario: Omit<Usuario, 'id'>): { ok: boolean; message: string } {
+  async crear(usuario: Omit<Usuario, 'id'>): Promise<{ ok: boolean; message: string }> {
     if (this.existeUsername(usuario.username)) {
       return {
         ok: false,
@@ -67,24 +71,41 @@ export class UsuarioService {
       };
     }
 
-    const nuevoUsuario: Usuario = {
-      ...usuario,
-      id: this.generarId()
-    };
+    try {
+      const nuevo = await firstValueFrom(
+        this.http.post<{ id: number; username: string; role: string }>(`${API_BASE_URL}/users`, {
+          username: usuario.username,
+          password: usuario.password,
+          role: mapFrontRoleToApi(usuario.rol)
+        })
+      );
 
-    this._usuarios.update(usuarios => [...usuarios, nuevoUsuario]);
-    this.persistirUsuarios();
+      this._usuarios.update(usuarios => [
+        ...usuarios,
+        {
+          id: nuevo.id,
+          username: nuevo.username,
+          password: '',
+          rol: mapApiRoleToFront(nuevo.role)
+        }
+      ]);
 
-    return {
-      ok: true,
-      message: 'Usuario registrado correctamente'
-    };
+      return {
+        ok: true,
+        message: 'Usuario registrado correctamente'
+      };
+    } catch {
+      return {
+        ok: false,
+        message: 'No se pudo registrar el usuario'
+      };
+    }
   }
 
-  actualizar(
+  async actualizar(
     id: number,
     cambios: Partial<Omit<Usuario, 'id'>>
-  ): { ok: boolean; message: string } {
+  ): Promise<{ ok: boolean; message: string }> {
     const usuarios = this._usuarios();
     const index = usuarios.findIndex(usuario => usuario.id === id);
 
@@ -109,22 +130,40 @@ export class UsuarioService {
       };
     }
 
-    const usuariosActualizados = [...usuarios];
-    usuariosActualizados[index] = {
-      ...usuariosActualizados[index],
-      ...cambios
-    };
+    const usuarioActual = usuarios[index];
 
-    this._usuarios.set(usuariosActualizados);
-    this.persistirUsuarios();
+    try {
+      const actualizado = await firstValueFrom(
+        this.http.put<{ id: number; username: string; role: string }>(`${API_BASE_URL}/users/${id}`, {
+          username: cambios.username ?? usuarioActual.username,
+          password: cambios.password ?? '',
+          role: mapFrontRoleToApi((cambios.rol ?? usuarioActual.rol) as Rol)
+        })
+      );
 
-    return {
-      ok: true,
-      message: 'Usuario actualizado correctamente'
-    };
+      const usuariosActualizados = [...usuarios];
+      usuariosActualizados[index] = {
+        ...usuariosActualizados[index],
+        username: actualizado.username,
+        rol: mapApiRoleToFront(actualizado.role),
+        password: ''
+      };
+
+      this._usuarios.set(usuariosActualizados);
+
+      return {
+        ok: true,
+        message: 'Usuario actualizado correctamente'
+      };
+    } catch {
+      return {
+        ok: false,
+        message: 'No se pudo actualizar el usuario'
+      };
+    }
   }
 
-  eliminar(id: number): { ok: boolean; message: string } {
+  async eliminar(id: number): Promise<{ ok: boolean; message: string }> {
     const usuario = this.getById(id);
 
     if (!usuario) {
@@ -141,13 +180,21 @@ export class UsuarioService {
       };
     }
 
-    this._usuarios.update(usuarios => usuarios.filter(item => item.id !== id));
-    this.persistirUsuarios();
+    try {
+      await firstValueFrom(this.http.delete(`${API_BASE_URL}/users/${id}`));
 
-    return {
-      ok: true,
-      message: 'Usuario eliminado correctamente'
-    };
+      this._usuarios.update(usuarios => usuarios.filter(item => item.id !== id));
+
+      return {
+        ok: true,
+        message: 'Usuario eliminado correctamente'
+      };
+    } catch {
+      return {
+        ok: false,
+        message: 'No se pudo eliminar el usuario'
+      };
+    }
   }
 
   puedeCrearRol(rolActual: Rol, rolObjetivo: Rol): boolean {
@@ -160,14 +207,5 @@ export class UsuarioService {
     }
 
     return false;
-  }
-
-  private persistirUsuarios(): void {
-    this.storageService.setItem(USERS_KEY, this._usuarios());
-  }
-
-  private generarId(): number {
-    const ids = this._usuarios().map(usuario => usuario.id);
-    return ids.length ? Math.max(...ids) + 1 : 1;
   }
 }

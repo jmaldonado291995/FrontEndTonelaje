@@ -1,110 +1,111 @@
- <div class="reporte-config-page"> 
+<div class="reporte-config-page">
 
-    <div class="form-card">
-      <div class="card-header">
-        <h2>
-          {{ modoEdicion() ? 'Editar configuración de reporte' : 'Nueva configuración de reporte' }}
-        </h2>
-      </div>
+  <div class="form-card">
+    <div class="card-header">
+      <h2>
+        {{ modoEdicion() ? 'Editar configuración de reporte' : 'Nueva configuración de reporte' }}
+      </h2>
+    </div>
 
-      <form [formGroup]="form" (ngSubmit)="guardar()" class="formulario">
-        <div class="fila">
-          <div class="campo">
-            <label for="codigo">Código</label>
-            <input id="codigo" type="text" formControlName="codigo" />
-          </div>
-
-          <div class="campo">
-            <label for="horaEjecucion">Hora ejecución</label>
-            <input id="horaEjecucion" type="time" formControlName="horaEjecucion" />
-          </div>
-        </div>
-
-        <div class="fila">
-          <div class="campo">
-            <label for="fechaInicio">Fecha inicio</label>
-            <input id="fechaInicio" type="date" formControlName="fechaInicio" />
-          </div>
-
-          <div class="campo">
-            <label for="fechaFin">Fecha fin</label>
-            <input id="fechaFin" type="date" formControlName="fechaFin" />
-          </div>
+    <form [formGroup]="form" (ngSubmit)="guardar()" class="formulario">
+      <div class="fila">
+        <div class="campo">
+          <label for="sendTime">Hora envío</label>
+          <input id="sendTime" type="time" formControlName="sendTime" />
         </div>
 
         <div class="campo">
-          <label for="destinatariosTexto">Destinatarios</label>
-          <textarea
-            id="destinatariosTexto"
-            rows="5"
-            formControlName="destinatariosTexto"
-            placeholder="correo1@empresa.com, correo2@empresa.com"
-          ></textarea>
-          <small class="ayuda">
-            Ingrese uno o varios correos separados por coma.
-          </small>
+          <label for="format">Formato</label>
+          <select id="format" formControlName="format">
+            <option value="XLSX">XLSX</option>
+            <option value="PDF">PDF</option>
+          </select>
         </div>
-
-        <div class="acciones-formulario">
-          <button type="submit" class="btn-guardar">
-            {{ modoEdicion() ? 'Actualizar' : 'Guardar' }}
-          </button>
-
-          @if (modoEdicion()) {
-            <button type="button" class="btn-cancelar" (click)="cancelarEdicion()">
-              Cancelar
-            </button>
-          }
-        </div>
-      </form>
-    </div>
-
-    <div class="listado-card">
-      <div class="card-header">
-        <h2>Listado de configuraciones</h2>
       </div>
 
-      @if (error) {
-        <div class="alerta-error">{{ error }}</div>
-      }
+      <div class="fila">
+        <div class="campo">
+          <label for="active">Estado</label>
+          <select id="active" formControlName="active">
+            <option [ngValue]="true">Activo</option>
+            <option [ngValue]="false">Inactivo</option>
+          </select>
+        </div>
+      </div>
 
-      @if (mensaje) {
-        <div class="alerta-ok">{{ mensaje }}</div>
-      }
+      <div class="campo">
+        <label for="destinatariosTexto">Destinatarios</label>
+        <textarea
+          id="destinatariosTexto"
+          rows="5"
+          formControlName="destinatariosTexto"
+          placeholder="correo1@empresa.com, correo2@empresa.com"
+        ></textarea>
+        <small class="ayuda">
+          Ingrese uno o varios correos separados por coma.
+        </small>
+      </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Código</th>
-            <th>Hora</th>
-            <th>Fecha inicio</th>
-            <th>Fecha fin</th>
-            <th>Destinatarios</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (config of configuraciones(); track config.id) {
-            <tr>
-              <td>{{ config.id }}</td>
-              <td>{{ config.codigo }}</td>
-              <td>{{ config.horaEjecucion }}</td>
-              <td>{{ config.fechaInicio }}</td>
-              <td>{{ config.fechaFin }}</td>
-              <td>{{ config.destinatarios.join(', ') }}</td>
-              <td class="acciones">
-                <button type="button" class="btn-editar" (click)="editar(config)">
-                  Editar
-                </button>
-                <button type="button" class="btn-eliminar" (click)="eliminar(config.id)">
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+      <div class="acciones-formulario">
+        <button type="submit" class="btn-guardar">
+          {{ modoEdicion() ? 'Actualizar' : 'Guardar' }}
+        </button>
+
+        @if (modoEdicion()) {
+          <button type="button" class="btn-cancelar" (click)="cancelarEdicion()">
+            Cancelar
+          </button>
+        }
+      </div>
+    </form>
+  </div>
+
+  <div class="listado-card">
+    <div class="card-header">
+      <h2>Listado de configuraciones</h2>
     </div>
+
+    @if (error) {
+      <div class="alerta-error">{{ error }}</div>
+    }
+
+    @if (mensaje) {
+      <div class="alerta-ok">{{ mensaje }}</div>
+    }
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Hora envío</th>
+          <th>Formato</th>
+          <th>Estado</th>
+          <th>Creador</th>
+          <th>Destinatarios</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (config of configuraciones(); track config.id) {
+          <tr>
+            <td>{{ config.id }}</td>
+            <td>{{ config.sendTime }}</td>
+            <td>{{ config.format }}</td>
+            <td>{{ config.active ? 'Activo' : 'Inactivo' }}</td>
+            <td>{{ config.createdByUsername || config.createdById }}</td>
+            <td>{{ config.destinatarios.join(', ') }}</td>
+            <td class="acciones">
+              <button type="button" class="btn-editar" (click)="editar(config)">
+                Editar
+              </button>
+              <button type="button" class="btn-eliminar" (click)="eliminar(config.id)">
+                Eliminar
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 
 </div>

@@ -29,7 +29,7 @@ export class LoginComponent {
     password: ['', [Validators.required]]
   });
 
-  iniciarSesion(): void {
+  async iniciarSesion(): Promise<void> {
     this.mensajeError = '';
 
     if (this.form.invalid) {
@@ -40,7 +40,7 @@ export class LoginComponent {
     this.enviando = true;
 
     const { username, password } = this.form.getRawValue();
-    const resultado = this.authService.login(username, password);
+    const resultado = await this.authService.login(username, password);
 
     this.enviando = false;
 

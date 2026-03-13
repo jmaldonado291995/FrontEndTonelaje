@@ -1,12 +1,20 @@
+export interface DashboardVariableResumen {
+  variableId: number;
+  nombre: string;
+  valorPromedio: number;
+  fuente: string;
+  descripcion: string;
+  sitios: string[];
+  unidad: string;
+}
+
+export interface DashboardGraficaItem {
+  label: string;
+  value: number;
+}
+
 export interface DashboardDia {
   fecha: string;
-  tonelajeEntrante: number;
-  tonelajeSaliente: number;
-  frecuenciaBombaAgua: number;
-  amperajeBomba: number;
-  presionHidrociclones: number;
-  graficaTonelaje: {
-    label: string;
-    value: number;
-  }[];
+  variables: DashboardVariableResumen[];
+  graficaPorVariable: Record<number, DashboardGraficaItem[]>;
 }

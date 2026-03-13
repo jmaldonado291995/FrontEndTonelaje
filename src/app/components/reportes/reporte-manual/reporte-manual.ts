@@ -32,7 +32,7 @@ export class ReporteManualComponent {
     sede: ['Todos', [Validators.required]]
   });
 
-  buscar(): void {
+  async buscar(): Promise<void> {
     this.mensaje = '';
     this.error = '';
     this.consultaRealizada.set(false);
@@ -44,7 +44,7 @@ export class ReporteManualComponent {
 
     const { fechaInicio, fechaFin, sede } = this.form.getRawValue();
 
-    const resultado = this.reporteService.consultarReporteManual({
+    const resultado = await this.reporteService.consultarReporteManual({
       fechaInicio,
       fechaFin,
       sede

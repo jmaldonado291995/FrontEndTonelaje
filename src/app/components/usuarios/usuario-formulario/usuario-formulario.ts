@@ -53,8 +53,8 @@ export class UsuarioFormularioComponent implements OnChanges {
       if (this.usuarioEditar) {
         this.form.patchValue({
           username: this.usuarioEditar.username,
-          password: this.usuarioEditar.password,
-          confirmPassword: this.usuarioEditar.password,
+          password: '',
+          confirmPassword: '',
           rol: this.usuarioEditar.rol
         });
       } else {
@@ -88,7 +88,7 @@ export class UsuarioFormularioComponent implements OnChanges {
     this.rolesDisponibles = [];
   }
 
-  guardar(): void {
+  async guardar(): Promise<void> {
     this.mensaje = '';
     this.error = '';
 
@@ -117,7 +117,7 @@ export class UsuarioFormularioComponent implements OnChanges {
     }
 
     if (this.modoEdicion && this.usuarioEditar) {
-      const resultado = this.usuarioService.actualizar(this.usuarioEditar.id, {
+      const resultado = await this.usuarioService.actualizar(this.usuarioEditar.id, {
         username: username!,
         password: password!,
         rol: rol as Rol
@@ -134,7 +134,7 @@ export class UsuarioFormularioComponent implements OnChanges {
       return;
     }
 
-    const resultado = this.usuarioService.crear({
+    const resultado = await this.usuarioService.crear({
       username: username!,
       password: password!,
       rol: rol as Rol

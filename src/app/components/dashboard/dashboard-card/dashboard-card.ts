@@ -12,4 +12,5 @@ export class DashboardCardComponent {
   @Input() titulo = '';
   @Input() valor: string | number = '';
   @Input() descripcion = '';
+  @Input() seleccionada = false;
 }
