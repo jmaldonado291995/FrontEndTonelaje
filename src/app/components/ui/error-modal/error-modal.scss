@@ -1,0 +1,44 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  background: rgba(107, 114, 128, 0.6);
+  padding: 24px;
+}
+
+.modal-card {
+  width: min(100%, 420px);
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  display: grid;
+  gap: 16px;
+}
+
+.modal-card h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: #111827;
+}
+
+.modal-card p {
+  margin: 0;
+  white-space: pre-line;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.modal-card button {
+  justify-self: end;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  background: #111827;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
