@@ -47,8 +47,6 @@ export class UsuarioFormularioComponent implements OnChanges {
   );
 
   ngOnChanges(changes: SimpleChanges): void {
-    this.cargarRolesDisponibles();
-
     if (changes['usuarioEditar']) {
       if (this.usuarioEditar) {
         this.form.patchValue({
@@ -61,6 +59,8 @@ export class UsuarioFormularioComponent implements OnChanges {
         this.limpiarFormulario();
       }
     }
+
+    this.cargarRolesDisponibles();
   }
 
   get modoEdicion(): boolean {
@@ -76,12 +76,15 @@ export class UsuarioFormularioComponent implements OnChanges {
     }
 
     if (usuario.rol === Rol.ADMIN) {
-      this.rolesDisponibles = [Rol.SUPERVISOR, Rol.OPERADOR];
+      this.rolesDisponibles = [Rol.ADMIN, Rol.SUPERVISOR, Rol.OPERADOR];
       return;
     }
 
     if (usuario.rol === Rol.SUPERVISOR) {
-      this.rolesDisponibles = [Rol.OPERADOR];
+      this.rolesDisponibles =
+        !this.usuarioEditar || this.usuarioEditar.rol === Rol.OPERADOR
+          ? [Rol.OPERADOR]
+          : [];
       return;
     }
 
@@ -111,12 +114,17 @@ export class UsuarioFormularioComponent implements OnChanges {
       return;
     }
 
-    if (!this.usuarioService.puedeCrearRol(usuarioSesion.rol, rol as Rol)) {
+    if (!this.modoEdicion && !this.usuarioService.puedeCrearRol(usuarioSesion.rol, rol as Rol)) {
       this.error = 'No tiene permisos para registrar este tipo de usuario';
       return;
     }
 
     if (this.modoEdicion && this.usuarioEditar) {
+      if (!this.usuarioService.puedeActualizarUsuario(usuarioSesion.rol, this.usuarioEditar, rol as Rol)) {
+        this.error = 'No tiene permisos para actualizar este usuario';
+        return;
+      }
+
       const resultado = await this.usuarioService.actualizar(this.usuarioEditar.id, {
         username: username!,
         password: password!,

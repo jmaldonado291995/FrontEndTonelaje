@@ -1,0 +1,16 @@
+@if (modalState(); as modal) {
+  <div class="modal-overlay">
+    <div
+      class="modal-card"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="error-modal-title"
+      aria-describedby="error-modal-message"
+    >
+      <h2 id="error-modal-title">{{ modal.title }}</h2>
+      <p id="error-modal-message">{{ modal.message }}</p>
+
+      <button type="button" (click)="close()">ENTENDIDO</button>
+    </div>
+  </div>
+}
